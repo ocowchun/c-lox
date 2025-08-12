@@ -35,7 +35,7 @@ void free_chunk(Chunk *chunk) {
     init_chunk(chunk);
 }
 
-int add_constant(Chunk *chunk, value val) {
+int add_constant(Chunk *chunk, Value val) {
     write_value_array(&chunk->constants, val);
     return chunk->constants.count - 1;
 }

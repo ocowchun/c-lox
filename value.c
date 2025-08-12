@@ -8,17 +8,17 @@
 #include "value.h"
 
 
-void init_value_array(value_array *array) {
+void init_value_array(ValueArray *array) {
     array->count = 0;
     array->capacity = 0;
     array->values = NULL;
 }
 
-void write_value_array(value_array *array, value val) {
+void write_value_array(ValueArray *array, Value val) {
     if (array->capacity < array->count + 1) {
         int old_capacity = array->capacity;
         array->capacity = GROW_CAPACITY(array->capacity);
-        array->values = GROW_ARRAY(value, array->values, old_capacity, array->capacity);
+        array->values = GROW_ARRAY(Value, array->values, old_capacity, array->capacity);
     }
 
     array->values[array->count] = val;
@@ -26,12 +26,12 @@ void write_value_array(value_array *array, value val) {
 }
 
 
-void free_value_array(value_array *array) {
-    array->values = FREE_ARRAY(value, array->values, array->capacity);
+void free_value_array(ValueArray *array) {
+    array->values = FREE_ARRAY(Value, array->values, array->capacity);
     init_value_array(array);
 }
 
-void print_value(value val) {
+void print_value(Value val) {
     switch (val.type) {
         case VAL_BOOL: {
             printf(AS_BOOL(val) ? "true" : "false");
@@ -48,7 +48,7 @@ void print_value(value val) {
     }
 }
 
-bool values_equal(value a, value b) {
+bool values_equal(Value a, Value b) {
     if (a.type != b.type) {
         return false;
     }

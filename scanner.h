@@ -25,18 +25,18 @@ typedef enum {
     TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE,
 
     TOKEN_ERROR, TOKEN_EOF
-} token_type;
+} TokenType;
 
 typedef struct {
-    token_type type;
+    TokenType type;
     const char *start;
     int length;
     int line;
-} token;
+} Token;
 
 void init_scanner(const char *source);
 
-token scan_token();
+Token scan_token();
 
 
 #endif //CLOX_SCANNER_H

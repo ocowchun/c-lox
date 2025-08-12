@@ -26,8 +26,8 @@ static bool is_at_end() {
     return *global_scanner.current == '\0';
 }
 
-static token make_token(token_type type) {
-    token t;
+static Token make_token(TokenType type) {
+    Token t;
     t.type = type;
     t.start = global_scanner.start;
     t.length = (int) (global_scanner.current - global_scanner.start);
@@ -35,8 +35,8 @@ static token make_token(token_type type) {
     return t;
 }
 
-static token error_token(const char *message) {
-    token t;
+static Token error_token(const char *message) {
+    Token t;
     t.type = TOKEN_ERROR;
     t.start = message;
     t.length = (int) strlen(message);
@@ -99,7 +99,7 @@ static void skip_whitespace() {
     }
 }
 
-static token string() {
+static Token string() {
     while (peek() != '"' && !is_at_end()) {
         if (peek() == '\n') {
             global_scanner.line++;
@@ -120,7 +120,7 @@ static bool is_digit(char c) {
     return c >= '0' && c <= '9';
 }
 
-static token number() {
+static Token number() {
     while (is_digit(peek())) {
         advance();
     }
@@ -139,7 +139,7 @@ static bool is_alpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
-static token_type check_keyword(int start, int length, const char *rest, token_type type) {
+static TokenType check_keyword(int start, int length, const char *rest, TokenType type) {
     if (global_scanner.current - global_scanner.start == start + length &&
         memcmp(global_scanner.start + start, rest, length) == 0) {
         return type;
@@ -147,7 +147,7 @@ static token_type check_keyword(int start, int length, const char *rest, token_t
     return TOKEN_IDENTIFIER;
 }
 
-static token_type identifier_type() {
+static TokenType identifier_type() {
     switch (global_scanner.start[0]) {
         case 'a':
             return check_keyword(1, 2, "nd", TOKEN_AND);
@@ -198,7 +198,7 @@ static token_type identifier_type() {
     return TOKEN_IDENTIFIER;
 }
 
-static token identifier() {
+static Token identifier() {
     while (is_alpha(peek()) || is_digit(peek())) {
         advance();
     }
@@ -206,7 +206,7 @@ static token identifier() {
     return make_token(identifier_type());
 }
 
-token scan_token() {
+Token scan_token() {
     skip_whitespace();
     global_scanner.start = global_scanner.current;
     if (is_at_end()) {

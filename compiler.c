@@ -38,8 +38,8 @@ typedef struct {
 } parse_rule;
 
 typedef struct {
-    token current;
-    token previous;
+    Token current;
+    Token previous;
     bool had_error;
     bool panic_mode;
 } parser;
@@ -53,7 +53,7 @@ static Chunk *current_chunk() {
 }
 
 
-static void error_at(token *t, const char *message) {
+static void error_at(Token *t, const char *message) {
     if (global_parser.panic_mode) {
         return;
     }
@@ -92,7 +92,7 @@ static void advance() {
     }
 }
 
-static void consume(token_type type, const char *message) {
+static void consume(TokenType type, const char *message) {
     if (global_parser.current.type == type) {
         advance();
         return;
@@ -114,7 +114,7 @@ static void emit_return() {
     emit_byte(OP_RETURN);
 }
 
-static uint8_t make_constant(value val) {
+static uint8_t make_constant(Value val) {
     int constant = add_constant(current_chunk(), val);
     // TODO: increase constant size to 2 bytes
     if (constant > UINT8_MAX) {
@@ -125,7 +125,7 @@ static uint8_t make_constant(value val) {
     return (uint8_t) constant;
 }
 
-static void emit_constant(value val) {
+static void emit_constant(Value val) {
     emit_bytes(OP_CONSTANT, make_constant(val));
 }
 
@@ -141,12 +141,12 @@ static void end_compiler() {
 
 static void expression();
 
-static parse_rule *get_rule(token_type type);
+static parse_rule *get_rule(TokenType type);
 
 static void parse_precedence(precedence precedence);
 
 static void binary() {
-    token_type operator_type = global_parser.previous.type;
+    TokenType operator_type = global_parser.previous.type;
     parse_rule *rule = get_rule(operator_type);
     parse_precedence((precedence) (rule->prec + 1));
 
@@ -229,7 +229,7 @@ static void number() {
 }
 
 static void unary() {
-    token_type operator_type = global_parser.previous.type;
+    TokenType operator_type = global_parser.previous.type;
 
     parse_precedence(PREC_UNARY);
 
@@ -313,7 +313,7 @@ static void parse_precedence(precedence prec) {
     }
 }
 
-static parse_rule *get_rule(token_type type) {
+static parse_rule *get_rule(TokenType type) {
     return &rules[type];
 }
 

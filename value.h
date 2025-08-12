@@ -11,19 +11,19 @@ typedef enum {
     VAL_BOOL,
     VAL_NIL,
     VAL_NUMBER,
-} value_type;
+} ValueType;
 
 typedef struct {
-    value_type type;
+    ValueType type;
     union {
         bool boolean;
         double number;
     } as;
-} value;
+} Value;
 
-#define BOOL_VAL(val) ((value){VAL_BOOL, {.boolean = val}})
-#define NIL_VAL ((value){VAL_NIL, {.number = 0}})
-#define NUMBER_VAL(val) ((value){VAL_NUMBER, {.number = val}})
+#define BOOL_VAL(val) ((Value){VAL_BOOL, {.boolean = val}})
+#define NIL_VAL ((Value){VAL_NIL, {.number = 0}})
+#define NUMBER_VAL(val) ((Value){VAL_NUMBER, {.number = val}})
 
 
 #define AS_BOOL(val) ((val).as.boolean)
@@ -37,17 +37,17 @@ typedef struct {
 typedef struct {
     int capacity;
     int count;
-    value *values;
-} value_array;
+    Value *values;
+} ValueArray;
 
-bool values_equal(value a, value b);
+bool values_equal(Value a, Value b);
 
-void init_value_array(value_array *array);
+void init_value_array(ValueArray *array);
 
-void write_value_array(value_array *array, value val);
+void write_value_array(ValueArray *array, Value val);
 
-void free_value_array(value_array *array);
+void free_value_array(ValueArray *array);
 
-void print_value(value val);
+void print_value(Value val);
 
 #endif //C_LOX_VALUE_H

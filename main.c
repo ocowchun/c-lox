@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "common.h"
-#include "chunk.h"
-#include "debug.h"
 #include "vm.h"
 
 static void repl() {
@@ -52,12 +49,11 @@ static char *read_file(const char *path) {
 
 static void run_file(const char *path) {
     char *source = read_file(path);
-    interpret_result result = interpret(source);
+    InterpretResult result = interpret(source);
 
 }
 
 int main(int argc, char *argv[]) {
-//    printf("Hello, World!\n");
     init_virtual_machine();
 
     if (argc == 1) {

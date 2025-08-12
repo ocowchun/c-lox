@@ -9,7 +9,7 @@
 #include "debug.h"
 #include "compiler.h"
 
-virtual_machine vm;
+VirtualMachine vm;
 
 static void reset_stack() {
     vm.stack_top = vm.stack;
@@ -37,26 +37,26 @@ void free_virtual_machine() {
 
 }
 
-void push(value val) {
+void push(Value val) {
     // TODO: check no overflow
     *vm.stack_top = val;
     vm.stack_top++;
 }
 
-value pop() {
+Value pop() {
     vm.stack_top--;
     return *vm.stack_top;
 }
 
-static value peek(int distance) {
+static Value peek(int distance) {
     return vm.stack_top[-1 - distance];
 }
 
-static bool is_falsey(value val) {
+static bool is_falsey(Value val) {
     return IS_NIL(val) || (IS_BOOL(val) && !AS_BOOL(val));
 }
 
-static interpret_result run() {
+static InterpretResult run() {
 
 #define READ_BYTE() (*vm.ip++)
 
@@ -77,7 +77,7 @@ static interpret_result run() {
     for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
         printf("          ");
-        for (value *slot = vm.stack; slot < vm.stack_top; slot++) {
+        for (Value *slot = vm.stack; slot < vm.stack_top; slot++) {
             printf("[ ");
             print_value(*slot);
             printf(" ]");
@@ -88,7 +88,7 @@ static interpret_result run() {
         uint8_t instruction;
         switch (instruction = READ_BYTE()) {
             case OP_CONSTANT: {
-                value constant = READ_CONSTANT();
+                Value constant = READ_CONSTANT();
                 push(constant);
                 break;
             }
@@ -105,8 +105,8 @@ static interpret_result run() {
                 break;
             }
             case OP_EQUAL: {
-                value b = pop();
-                value a = pop();
+                Value b = pop();
+                Value a = pop();
                 push(BOOL_VAL(values_equal(a, b)));
                 break;
             }
@@ -160,7 +160,7 @@ static interpret_result run() {
 
 }
 
-interpret_result interpret(const char *source) {
+InterpretResult interpret(const char *source) {
     Chunk chunk;
     init_chunk(&chunk);
 
@@ -172,7 +172,7 @@ interpret_result interpret(const char *source) {
     vm.chunk = &chunk;
     vm.ip = vm.chunk->code;
 
-    interpret_result result = run();
+    InterpretResult result = run();
 
     free_chunk(&chunk);
     return result;
