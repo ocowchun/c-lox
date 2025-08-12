@@ -30,7 +30,7 @@ void init_virtual_machine();
 
 void free_virtual_machine();
 
-interpret_result interpret(Chunk *chunk);
+interpret_result interpret(const char *source);
 
 void push(value val);
 

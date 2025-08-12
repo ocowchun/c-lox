@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.29)
-project(c_lox C)
+project(clox C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(c_lox main.c
+add_executable(clox main.c
         common.h
         chunk.h
         chunk.c
@@ -14,4 +14,8 @@ add_executable(c_lox main.c
         value.h
         value.c
         vm.h
-        vm.c)
+        vm.c
+        compiler.h
+        compiler.c
+        scanner.h
+        scanner.c)
