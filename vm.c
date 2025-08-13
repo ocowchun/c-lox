@@ -3,11 +3,14 @@
 //
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "common.h"
 #include "vm.h"
 #include "debug.h"
 #include "compiler.h"
+#include "object.h"
+#include "memory.h"
 
 VirtualMachine vm;
 
@@ -31,10 +34,11 @@ static void runtime_error(const char *format, ...) {
 
 void init_virtual_machine() {
     reset_stack();
+    vm.objects = NULL;
 }
 
 void free_virtual_machine() {
-
+    free_objects();
 }
 
 void push(Value val) {
@@ -54,6 +58,20 @@ static Value peek(int distance) {
 
 static bool is_falsey(Value val) {
     return IS_NIL(val) || (IS_BOOL(val) && !AS_BOOL(val));
+}
+
+static void concatenate() {
+    ObjString *b = AS_STRING(pop());
+    ObjString *a = AS_STRING(pop());
+
+    int length = a->length + b->length;
+    char *chars = ALLOCATE(char, length + 1);
+    memcpy(chars, a->chars, a->length);
+    memcpy(chars + a->length, b->chars, b->length);
+    chars[length] = '\0';
+
+    ObjString *result = take_string(chars, length);
+    push(OBJ_VAL(result));
 }
 
 static InterpretResult run() {
@@ -119,7 +137,14 @@ static InterpretResult run() {
                 break;
             }
             case OP_ADD: {
-                BINARY_OP(NUMBER_VAL, +);
+                if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+                    concatenate();
+                } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+                    BINARY_OP(NUMBER_VAL, +);
+                } else {
+                    runtime_error("Operands must be two numbers or two strings.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             }
             case OP_SUBTRACT: {
