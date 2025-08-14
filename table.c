@@ -1,0 +1,163 @@
+//
+// Created by ocowchun on 2025/8/14.
+//
+
+#include <stdio.h>
+#include <string.h>
+
+#include "object.h"
+#include "memory.h"
+#include "table.h"
+#include "value.h"
+
+
+#define TABLE_MAX_LOAD 0.75
+
+void init_table(Table *table) {
+    table->count = 0;
+    table->capacity = 0;
+    table->entries = NULL;
+}
+
+void free_table(Table *table) {
+    FREE_ARRAY(Entry, table->entries, table->count);
+    init_table(table);
+}
+
+static Entry *find_entry(Entry *entries, int capacity, ObjString *key) {
+    uint32_t index = key->hash % capacity;
+    Entry *tombstone = NULL;
+    for (;;) {
+        Entry *entry = &entries[index];
+        if (entry->key == NULL) {
+            if (IS_NIL(entry->value)) {
+                // Empty entry.
+                return tombstone != NULL ? tombstone : entry;
+            } else {
+                // We found a tombstone.
+                if (tombstone == NULL) {
+                    tombstone = entry;
+                }
+            }
+        } else if (entry->key == key) {
+            // all strings are interned, so we only need to compare their address
+
+            // We found the key.
+            return entry;
+        }
+
+        index = (index + 1) % capacity;
+    }
+}
+
+/**
+ * If it finds an entry with that key, copy the entry value to value parameter and returns true,
+ * otherwise it returns false.
+ */
+bool table_get(Table *table, ObjString *key, Value *value) {
+    if (table->count == 0) {
+        return false;
+    }
+
+    Entry *entry = find_entry(table->entries, table->capacity, key);
+    if (entry->key == NULL) {
+        return false;
+    }
+
+    *value = entry->value;
+    return true;
+}
+
+static void adjust_capacity(Table *table, int capacity) {
+    Entry *new_entries = ALLOCATE(Entry, capacity);
+    for (int i = 0; i < capacity; ++i) {
+        new_entries[i].key = NULL;
+        new_entries[i].value = NIL_VAL;
+    }
+
+    table->count = 0;
+    for (int i = 0; i < table->capacity; ++i) {
+        Entry *entry = &table->entries[i];
+        if (entry->key == NULL) {
+            continue;
+        }
+
+        Entry *dest = find_entry(new_entries, capacity, entry->key);
+        dest->key = entry->key;
+        dest->value = entry->value;
+        table->count++;
+    }
+
+    FREE_ARRAY(Entry, table->entries, table->capacity);
+
+    table->capacity = capacity;
+    table->entries = new_entries;
+}
+
+/**
+ * returns true if a new entry was added.
+ */
+bool table_set(Table *table, ObjString *key, Value value) {
+    printf("table_set\n");
+    if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
+        int capacity = GROW_CAPACITY(table->capacity);
+        adjust_capacity(table, capacity);
+    }
+    printf("after adjust cap\n");
+
+    Entry *entry = find_entry(table->entries, table->capacity, key);
+    printf("after find entry\n");
+    bool is_new_key = entry->key == NULL;
+    if (is_new_key && IS_NIL(entry->value)) {
+        //  increment the count during insertion only if the new entry goes into an entirely empty bucket.
+        table->count++;
+    }
+
+    entry->key = key;
+    entry->value = value;
+    printf("after entry assignment \n");
+    return is_new_key;
+}
+
+/**
+ * returns true if an entry was deleted.
+ */
+bool table_delete(Table *table, ObjString *key) {
+    if (table->count == 0) {
+        return false;
+    }
+
+    Entry *entry = find_entry(table->entries, table->capacity, key);
+    if (entry->key == NULL) {
+        return false;
+    }
+
+    // Place a tombstone in the entry.
+    entry->key = NULL;
+    entry->value = BOOL_VAL(true);
+    return true;
+}
+
+ObjString *table_find_string(Table *table, const char *chars, int length, uint32_t hash) {
+    if (table->count == 0) {
+        return NULL;
+    }
+
+    uint32_t index = hash % table->capacity;
+    for (;;) {
+        Entry *entry = &table->entries[index];
+        if (entry->key == NULL) {
+            // Stop if we find an empty non-tombstone entry.
+            if (IS_NIL(entry->value)) {
+                return NULL;
+            }
+        } else if (entry->key->length == length && entry->key->hash == hash &&
+                   memcmp(entry->key->chars, chars, length) == 0) {
+            // We found it.
+            return entry->key;
+        }
+
+        index = (index + 1) % table->capacity;
+    }
+}
+

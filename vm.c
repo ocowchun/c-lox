@@ -35,9 +35,11 @@ static void runtime_error(const char *format, ...) {
 void init_virtual_machine() {
     reset_stack();
     vm.objects = NULL;
+    init_table(&vm.strings);
 }
 
 void free_virtual_machine() {
+    free_table(&vm.strings);
     free_objects();
 }
 
