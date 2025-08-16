@@ -35,10 +35,12 @@ static void runtime_error(const char *format, ...) {
 void init_virtual_machine() {
     reset_stack();
     vm.objects = NULL;
+    init_table(&vm.globals);
     init_table(&vm.strings);
 }
 
 void free_virtual_machine() {
+    free_table(&vm.globals);
     free_table(&vm.strings);
     free_objects();
 }
@@ -82,6 +84,8 @@ static InterpretResult run() {
 
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
 
+#define READ_STRING() AS_STRING(READ_CONSTANT())
+
 #define BINARY_OP(value_type, op) \
     do {              \
         if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
@@ -122,6 +126,49 @@ static InterpretResult run() {
             }
             case OP_FALSE: {
                 push(BOOL_VAL(false));
+                break;
+            }
+            case OP_POP: {
+                pop();
+                break;
+            }
+            case OP_SET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                vm.stack[slot] = peek(0);
+                break;
+            }
+            case OP_GET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                push(vm.stack[slot]);
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                ObjString *name = READ_STRING();
+                Value value;
+                if (!table_get(&vm.globals, name, &value)) {
+                    runtime_error("Undefined variable '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(value);
+                break;
+            }
+            case OP_DEFINE_GLOBAL: {
+                ObjString *name = READ_STRING();
+                table_set(&vm.globals, name, peek(0));
+                // we don’t pop the value until after we add it to the hash table.
+                // That ensures the VM can still find the value if a garbage collection is triggered right
+                // in the middle of adding it to the hash table. That’s a distinct possibility since the hash table
+                // requires dynamic allocation when it resizes.
+                pop();
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                ObjString *name = READ_STRING();
+                if (table_set(&vm.globals, name, peek(0))) {
+                    table_delete(&vm.globals, name);
+                    runtime_error("Undefined variable '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             }
             case OP_EQUAL: {
@@ -173,9 +220,13 @@ static InterpretResult run() {
                 push(NUMBER_VAL(-AS_NUMBER(pop())));
                 break;
             }
-            case OP_RETURN: {
+            case OP_PRINT: {
                 print_value(pop());
                 printf("\n");
+                break;
+            }
+            case OP_RETURN: {
+                // Exit interpreter
                 return INTERPRET_OK;
             }
         }
@@ -183,6 +234,7 @@ static InterpretResult run() {
 
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef READ_STRING
 #undef BINARY_OP
 
 }

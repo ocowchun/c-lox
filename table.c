@@ -98,15 +98,12 @@ static void adjust_capacity(Table *table, int capacity) {
  * returns true if a new entry was added.
  */
 bool table_set(Table *table, ObjString *key, Value value) {
-    printf("table_set\n");
     if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
         int capacity = GROW_CAPACITY(table->capacity);
         adjust_capacity(table, capacity);
     }
-    printf("after adjust cap\n");
 
     Entry *entry = find_entry(table->entries, table->capacity, key);
-    printf("after find entry\n");
     bool is_new_key = entry->key == NULL;
     if (is_new_key && IS_NIL(entry->value)) {
         //  increment the count during insertion only if the new entry goes into an entirely empty bucket.
@@ -115,7 +112,6 @@ bool table_set(Table *table, ObjString *key, Value value) {
 
     entry->key = key;
     entry->value = value;
-    printf("after entry assignment \n");
     return is_new_key;
 }
 
