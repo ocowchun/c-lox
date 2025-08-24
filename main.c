@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
         repl();
 
     } else if (argc == 2) {
-
+        run_file(argv[1]);
     } else {
         fprintf(stderr, "Usage: clox [path]\n");
         exit(64);
