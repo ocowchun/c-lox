@@ -42,7 +42,13 @@ typedef struct {
 typedef struct {
     Token name;
     int depth;
+    bool is_captured;
 } Local;
+
+typedef struct {
+    uint8_t index;
+    bool is_local;
+} Upvalue;
 
 typedef enum {
     TYPE_FUNCTION,
@@ -57,6 +63,8 @@ typedef struct {
     // TODO: allow more than 256 local variables to be in scope at a time.
     Local locals[UINT8_COUNT];
     int local_count;
+    Upvalue upvalues[UINT8_COUNT];
+
     int scope_depth;
 } Compiler;
 
@@ -212,8 +220,11 @@ static void init_compiler(Compiler *compiler, FunctionType type) {
         current_compiler->function->name = copy_string(global_parser.previous.start, global_parser.previous.length);
     }
 
+    // From now on, the compiler implicitly claims stack slot zero for the VM’s own internal use.
+    // We give it an empty name so that the user can’t write an identifier that refers to it.
     Local *local = &current_compiler->locals[current_compiler->local_count++];
     local->depth = 0;
+    local->is_captured = false;
     local->name.start = "";
     local->name.length = 0;
 }
@@ -239,7 +250,13 @@ static void end_scope() {
 
     while (current_compiler->local_count > 0 &&
            current_compiler->locals[current_compiler->local_count - 1].depth > current_compiler->scope_depth) {
-        emit_byte(OP_POP);
+
+        Local* local = &current_compiler->locals[current_compiler->local_count - 1];
+        if (current_compiler->locals[current_compiler->local_count - 1].is_captured) {
+            emit_byte(OP_CLOSE_UPVALUE);
+        } else {
+            emit_byte(OP_POP);
+        }
         current_compiler->local_count--;
     }
 }
@@ -281,6 +298,44 @@ static int resolve_local(Compiler *compiler, Token *name) {
     return -1;
 }
 
+static int add_upvalue(Compiler *compiler, uint8_t index, bool is_local) {
+    int upvalue_count = compiler->function->upvalue_count;
+    for (int i = 0; i < upvalue_count; ++i) {
+        Upvalue *upvalue = &compiler->upvalues[i];
+        if (upvalue->index == index && upvalue->is_local == is_local) {
+            return i;
+        }
+    }
+
+    if (upvalue_count == UINT8_COUNT) {
+        error("Too many closure variables in function.");
+        return 0;
+    }
+
+    compiler->upvalues[upvalue_count].is_local = is_local;
+    compiler->upvalues[upvalue_count].index = index;
+    return compiler->function->upvalue_count++;
+}
+
+static int resolve_upvalue(Compiler *compiler, Token *name) {
+    if (compiler->enclosing == NULL) {
+        return -1;
+    }
+
+    int local = resolve_local((Compiler *) compiler->enclosing, name);
+    if (local != -1) {
+        ((Compiler *) (compiler->enclosing))->locals[local].is_captured = true;
+        return add_upvalue(compiler, (uint8_t) local, true);
+    }
+
+    int upvalue = resolve_upvalue((Compiler *) compiler->enclosing, name);
+    if (upvalue != -1) {
+        return add_upvalue(compiler, (uint8_t) upvalue, false);
+    }
+
+    return -1;
+}
+
 static void add_local(Token name) {
     if (current_compiler->local_count == UINT8_COUNT) {
         error("Too many local variables in function.");
@@ -291,6 +346,7 @@ static void add_local(Token name) {
     local->name = name;
     // set depth to -1 to point out the local is uninitialized.
     local->depth = -1;
+    local->is_captured = false;
 }
 
 static void declare_variable() {
@@ -473,6 +529,9 @@ static void named_variable(Token name, bool can_assign) {
     if (arg != -1) {
         getOp = OP_GET_LOCAL;
         setOp = OP_SET_LOCAL;
+    } else if ((arg = resolve_upvalue(current_compiler, &name)) != -1) {
+        getOp = OP_GET_UPVALUE;
+        setOp = OP_SET_UPVALUE;
     } else {
         arg = identifier_constant(&name);
         getOp = OP_GET_GLOBAL;
@@ -590,7 +649,12 @@ static void function(FunctionType type) {
     block();
 
     ObjFunction *fn = end_compiler();
-    emit_bytes(OP_CONSTANT, make_constant(OBJ_VAL(fn)));
+    emit_bytes(OP_CLOSURE, make_constant(OBJ_VAL(fn)));
+
+    for (int i = 0; i < fn->upvalue_count; ++i) {
+        emit_byte(compiler.upvalues[i].is_local ? 1 : 0);
+        emit_byte(compiler.upvalues[i].index);
+    }
 }
 
 static void fun_declaration() {

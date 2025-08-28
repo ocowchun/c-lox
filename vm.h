@@ -13,8 +13,8 @@
 #define FRAME_MAX 64
 #define STACK_MAX (FRAME_MAX * UINT8_COUNT)
 
-typedef struct {
-    ObjFunction *function;
+typedef struct CallFrame {
+    ObjClosure *closure;
 
     // instruction pointer
     // We use an actual real C pointer pointing right into the middle of the bytecode array instead of something
@@ -23,7 +23,7 @@ typedef struct {
     Value *slots;
 } CallFrame;
 
-typedef struct {
+typedef struct VirtualMachine {
     CallFrame frames[FRAME_MAX];
     // the number of ongoing function calls.
     int frame_count;
@@ -32,8 +32,8 @@ typedef struct {
     Value *stack_top;
     Table globals;
     Table strings;
+    ObjUpvalue *open_upvalues;
     Obj *objects;
-
 } VirtualMachine;
 
 typedef enum {
