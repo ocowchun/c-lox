@@ -1,24 +1,4 @@
-fun outer() {
-  var x = "outside";
-  var f2;
-
-  fun inner() {
-      {
-        var c = 123;
-        fun foo() {
-            print c;
-        }
-        f2 = foo;
-
-        //var d = y;
-        print x;
-      }
-  }
-
-  inner();
-
-  return inner;
-}
-
-var closure = outer();
-closure();
+var a = "first value";
+a = "updated";
+// GC here.
+print a;

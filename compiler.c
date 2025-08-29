@@ -9,6 +9,7 @@
 #include "compiler.h"
 #include "scanner.h"
 #include "object.h"
+#include "memory.h"
 
 #ifdef DEBUG_PRINT_CODE
 
@@ -251,7 +252,7 @@ static void end_scope() {
     while (current_compiler->local_count > 0 &&
            current_compiler->locals[current_compiler->local_count - 1].depth > current_compiler->scope_depth) {
 
-        Local* local = &current_compiler->locals[current_compiler->local_count - 1];
+        Local *local = &current_compiler->locals[current_compiler->local_count - 1];
         if (current_compiler->locals[current_compiler->local_count - 1].is_captured) {
             emit_byte(OP_CLOSE_UPVALUE);
         } else {
@@ -893,4 +894,12 @@ ObjFunction *compile(const char *source) {
     ObjFunction *function = end_compiler();
 
     return global_parser.had_error ? NULL : function;
+}
+
+void mark_compiler_roots() {
+    Compiler *compiler = current_compiler;
+    while (compiler != NULL) {
+        mark_object((Obj *) compiler->function);
+        compiler = (Compiler *) compiler->enclosing;
+    }
 }

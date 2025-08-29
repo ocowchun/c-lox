@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "chunk.h"
 #include "memory.h"
+#include "vm.h"
 
 
 void init_chunk(Chunk *chunk) {
@@ -36,6 +37,9 @@ void free_chunk(Chunk *chunk) {
 }
 
 int add_constant(Chunk *chunk, Value val) {
+    // a gc might trigger before val is added to constants, push val to help gc know val is in used.
+    push(val);
     write_value_array(&chunk->constants, val);
+    pop();
     return chunk->constants.count - 1;
 }
