@@ -5,7 +5,8 @@
 #ifndef CLOX_TABLE_H
 #define CLOX_TABLE_H
 
-#include "object.h"
+#include "common.h"
+#include "value.h"
 
 typedef struct {
     ObjString *key;

@@ -41,7 +41,6 @@ static void runtime_error(const char *format, ...) {
             fprintf(stderr, "script\n");
         } else {
             fprintf(stderr, "%s()\n", function->name->chars);
-
         }
     }
 
@@ -118,6 +117,11 @@ static bool call(ObjClosure *closure, int arg_count) {
 static bool call_value(Value callee, int arg_count) {
     if (IS_OBJ(callee)) {
         switch (OBJ_TYPE(callee)) {
+            case OBJ_CLASS: {
+                ObjClass *klass = AS_CLASS(callee);
+                vm.stack_top[-arg_count - 1] = OBJ_VAL(new_instance(klass));
+                return true;
+            }
             case OBJ_CLOSURE:
                 return call(AS_CLOSURE(callee), arg_count);
             case OBJ_NATIVE: {
@@ -167,7 +171,6 @@ static void close_upvalues(Value *last) {
         upvalue->location = &upvalue->closed;
         vm.open_upvalues = upvalue->next;
     }
-
 }
 
 static bool is_falsey(Value val) {
@@ -222,7 +225,8 @@ static InterpretResult run() {
             printf(" ]");
         }
         printf("\n");
-        disassemble_instruction(&frame->closure->function->chunk, (int) (frame->ip - frame->closure->function->chunk.code));
+        disassemble_instruction(&frame->closure->function->chunk,
+                                (int) (frame->ip - frame->closure->function->chunk.code));
 #endif
         uint8_t instruction;
 
@@ -295,6 +299,36 @@ static InterpretResult run() {
             case OP_SET_UPVALUE: {
                 uint8_t slot = READ_BYTE();
                 *frame->closure->upvalues[slot]->location = peek(0);
+                break;
+            }
+            case OP_GET_PROPERTY: {
+                if (!IS_INSTANCE(peek(0))) {
+                    runtime_error("Only instances have properties.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjInstance *instance = AS_INSTANCE(peek(0));
+                ObjString *name = READ_STRING();
+                Value value;
+                if (table_get(&instance->fields, name, &value)) {
+                    pop(); // Instance.
+                    push(value);
+                    break;
+                }
+
+                runtime_error("Undefined property '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            case OP_SET_PROPERTY: {
+                if (!IS_INSTANCE(peek(1))) {
+                    runtime_error("Only instances have fields.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                ObjInstance *instance = AS_INSTANCE(peek(1));
+                table_set(&instance->fields, READ_STRING(), peek(0));
+                Value value = pop();
+                pop();
+                push(value);
                 break;
             }
             case OP_EQUAL: {
@@ -398,6 +432,10 @@ static InterpretResult run() {
                 pop();
                 break;
             }
+            case OP_CLASS: {
+                push(OBJ_VAL(new_class(READ_STRING())));
+                break;
+            }
             case OP_RETURN: {
                 Value result = pop();
                 close_upvalues(frame->slots);
@@ -422,7 +460,6 @@ static InterpretResult run() {
 #undef READ_CONSTANT
 #undef READ_STRING
 #undef BINARY_OP
-
 }
 
 InterpretResult interpret(const char *source) {
@@ -439,4 +476,3 @@ InterpretResult interpret(const char *source) {
 
     return run();
 }
-

@@ -95,6 +95,17 @@ static void blacken_object(Obj *object) {
 #endif
 
     switch (object->type) {
+        case OBJ_CLASS: {
+            ObjClass *klass = (ObjClass *) object;
+            mark_object((Obj *) klass->name);
+            break;
+        }
+        case OBJ_INSTANCE: {
+            ObjInstance *instance = (ObjInstance *) object;
+            mark_object((Obj *) instance->klass);
+            mark_table(&instance->fields);
+            break;
+        }
         case OBJ_UPVALUE: {
             // When an upvalue is closed, it contains a reference to the closed-over value.
             // Since the value is no longer on the stack, we need to make sure we trace the reference to it from the upvalue.
@@ -127,6 +138,16 @@ static void free_object(Obj *obj) {
     printf("%p free type %d\n", (void *) obj, obj->type);
 #endif
     switch (obj->type) {
+        case OBJ_CLASS: {
+            FREE(ObjClass, obj);
+            break;
+        }
+        case OBJ_INSTANCE: {
+            ObjInstance *instance = (ObjInstance *) obj;
+            free_table(&instance->fields);
+            FREE(ObjInstance, obj);
+            break;
+        }
         case OBJ_UPVALUE: {
             FREE(ObjUpvalue, obj);
             break;
