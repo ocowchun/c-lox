@@ -19,6 +19,7 @@ typedef struct CallFrame {
     // instruction pointer
     // We use an actual real C pointer pointing right into the middle of the bytecode array instead of something
     // like an integer index because it’s faster to dereference a pointer than look up an element in an array by index.
+    // point to closure->function->chunk.code;
     uint8_t *ip;
     Value *slots;
 } CallFrame;
@@ -32,6 +33,7 @@ typedef struct VirtualMachine {
     Value *stack_top;
     Table globals;
     Table strings;
+    ObjString *init_string;
     // a linked list
     ObjUpvalue *open_upvalues;
     size_t bytes_allocated;
@@ -39,7 +41,7 @@ typedef struct VirtualMachine {
     Obj *objects;
     int gray_count;
     int gray_capacity;
-    Obj** gray_stack;
+    Obj **gray_stack;
 } VirtualMachine;
 
 typedef enum {

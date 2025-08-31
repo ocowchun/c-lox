@@ -95,9 +95,16 @@ static void blacken_object(Obj *object) {
 #endif
 
     switch (object->type) {
+        case OBJ_BOUND_METHOD: {
+            ObjBoundMethod *bound_method = (ObjBoundMethod *) object;
+            mark_value(bound_method->receiver);
+            mark_object((Obj *) bound_method->method);
+            break;
+        }
         case OBJ_CLASS: {
             ObjClass *klass = (ObjClass *) object;
             mark_object((Obj *) klass->name);
+            mark_table(&klass->methods);
             break;
         }
         case OBJ_INSTANCE: {
@@ -129,7 +136,6 @@ static void blacken_object(Obj *object) {
         case OBJ_NATIVE:
         case OBJ_STRING:
             break;
-
     }
 }
 
@@ -138,7 +144,13 @@ static void free_object(Obj *obj) {
     printf("%p free type %d\n", (void *) obj, obj->type);
 #endif
     switch (obj->type) {
+        case OBJ_BOUND_METHOD: {
+            FREE(ObjBoundMethod, obj);
+            break;
+        }
         case OBJ_CLASS: {
+            ObjClass *klass = (ObjClass *) obj;
+            free_table(&klass->methods);
             FREE(ObjClass, obj);
             break;
         }
@@ -174,7 +186,6 @@ static void free_object(Obj *obj) {
             FREE(ObjString, obj);
             break;
         }
-
     }
 }
 
@@ -193,6 +204,7 @@ static void mark_roots() {
 
     mark_table(&vm.globals);
     mark_compiler_roots();
+    mark_object((Obj *) vm.init_string);
 }
 
 static void trace_references() {

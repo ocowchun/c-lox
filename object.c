@@ -29,6 +29,13 @@ static Obj *allocate_object(size_t size, ObjType type) {
     return object;
 }
 
+ObjBoundMethod *new_bound_method(Value receiver, ObjClosure *method) {
+    ObjBoundMethod *bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
+    bound->receiver = receiver;
+    bound->method = method;
+    return bound;
+}
+
 ObjClosure *new_closure(ObjFunction *function) {
     ObjUpvalue **upvalues = ALLOCATE(ObjUpvalue*, function->upvalue_count);
     for (int i = 0; i < function->upvalue_count; ++i) {
@@ -58,7 +65,6 @@ ObjNative *new_native(NativeFn function) {
 }
 
 static ObjString *allocate_string(char *chars, int length, uint32_t hash) {
-
     ObjString *string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     string->length = length;
     string->chars = chars;
@@ -105,6 +111,7 @@ ObjUpvalue *new_upvalue(Value *slot) {
 ObjClass *new_class(ObjString *name) {
     ObjClass *klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
     klass->name = name;
+    init_table(&klass->methods);
     return klass;
 }
 
@@ -135,8 +142,10 @@ ObjString *take_string(char *chars, int length) {
     return allocate_string(chars, length, hash);
 }
 
-void print_object(Value value) {
+void print_object(const Value value) {
     switch (OBJ_TYPE(value)) {
+        case OBJ_BOUND_METHOD:
+            print_function(AS_BOUND_METHOD(value)->method->function);
         case OBJ_CLASS:
             printf("%s", AS_CLASS(value)->name->chars);
             break;
@@ -158,6 +167,5 @@ void print_object(Value value) {
         case OBJ_STRING:
             printf("%s", AS_CSTRING(value));
             break;
-
     }
 }
