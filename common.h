@@ -10,8 +10,8 @@
 #include <stdint.h>
 
 // uncomment it to trace execution
-//#define DEBUG_PRINT_CODE
-//#define DEBUG_TRACE_EXECUTION
+#define DEBUG_PRINT_CODE
+#define DEBUG_TRACE_EXECUTION
 
 #define DEBUG_STRESS_GC
 // uncomment to trace GC

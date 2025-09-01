@@ -115,6 +115,15 @@ bool table_set(Table *table, ObjString *key, Value value) {
     return is_new_key;
 }
 
+void table_add_all(Table *from, Table *to) {
+    for (int i = 0; i < from->capacity; ++i) {
+        Entry *entry = &from->entries[i];
+        if (entry->key != NULL) {
+            table_set(to, entry->key, entry->value);
+        }
+    }
+}
+
 /**
  * returns true if an entry was deleted.
  */
@@ -173,4 +182,3 @@ void mark_table(Table *table) {
         mark_value(entry->value);
     }
 }
-

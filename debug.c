@@ -138,6 +138,10 @@ int disassemble_instruction(Chunk *chunk, int offset) {
         case OP_CLOSE_UPVALUE: {
             return simple_instruction("OP_CLOSE_UPVALUE", offset);
         }
+        case OP_GET_SUPER:
+            return constant_instruction("OP_GET_SUPER", chunk, offset);
+        case OP_SUPER_INVOKE:
+            return invoke_instruction("OP_SUPER_INVOKE", chunk, offset);
         case OP_RETURN:
             return simple_instruction("OP_RETURN", offset);
         case OP_CLASS:
@@ -146,6 +150,8 @@ int disassemble_instruction(Chunk *chunk, int offset) {
             return constant_instruction("OP_METHOD", chunk, offset);
         case OP_INVOKE:
             return invoke_instruction("OP_INVOKE", chunk, offset);
+        case OP_INHERIT:
+            return simple_instruction("OP_INHERIT", offset);
         default:
             printf("Unknown opcode %d\n", instruction);
             return offset + 1;
