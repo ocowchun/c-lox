@@ -9,11 +9,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// uncomment it to trace execution
-#define DEBUG_PRINT_CODE
-#define DEBUG_TRACE_EXECUTION
 
-#define DEBUG_STRESS_GC
+#define NAN_BOXING
+
+// uncomment it to trace execution
+// #define DEBUG_PRINT_CODE
+// #define DEBUG_TRACE_EXECUTION
+
+// #define DEBUG_STRESS_GC
 // uncomment to trace GC
 //#define DEBUG_LOG_GC
 

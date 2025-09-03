@@ -75,7 +75,9 @@ int main(int argc, char *argv[]) {
     init_virtual_machine();
 
     if (argc == 1) {
-        repl();
+        // repl();
+        // benchmark
+        run_file("/Users/ocowchun/CLionProjects/c-lox/test.lox");
 
     } else if (argc == 2) {
         run_file(argv[1]);
